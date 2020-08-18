@@ -4,59 +4,82 @@ const auth_token = process.env.auth_token
 const account_sid = process.env.account_sid
 const from_number = process.env.from_number
 
-const Conversation = require('../../models/conversation')
+const Conversation = require('../../models/conversation')//the collection used by RASA Bot
+const Chat = require('../../models/chat');//the collection used by the frontend
+const chat = require('../../models/chat');
 
-router.get('/', (req, res) => {
-    if (!req.query.candidate) {
-        res.status(500).json({
-            'Message': 'Invalid Parameters'
-        })
-    } else {
-        Conversation.find({ "slots.candidateId": req.query.candidate })
-            .select('-__v')
-            .exec()
-            .then(data => {
-                var messages = data.map(conversation => conversation.events.reduce((messages, event) => {
-                    if (event.event === 'user') {
-                        messages.push({
-                            'sender': 'user',
-                            'text': event.text
+router.get('/:candidateId', (req, res) => {
+    Conversation.find({ "slots.candidateId": req.params.candidateId })
+        .select('-__v')
+        .exec()
+        .then(data => {
+            var messages = data.map(conversation => conversation.events.reduce((messages, event) => {
+                if (event.event === 'user') {
+                    messages.push({
+                        'sender': 'user',
+                        'text': event.text,
+                        'createdAt': event.timestamp
+                    })
+                } else if (event.event === 'bot') {
+                    messages.push({
+                        'sender': 'bot',
+                        'text': event.text,
+                        'createdAt': event.timestamp
+                    })
+                }
+                return messages
+            }, []))
+            messages = messages[0]
+            Chat.find({ "candidateId": req.params.candidateId }).exec().then(data => {
+                if (data.length > 0) {
+                    if(messages){
+                        messages = messages.concat(data[0].chat) // array of array is in case we want to expand the channels with same candidateId
+                        messages.sort((a, b) => {
+                            return a.createdAt - b.createdAt
                         })
-                    } else if (event.event === 'bot') {
-                        messages.push({
-                            'sender': 'bot',
-                            'text': event.text
-                        })
+                    } else {
+                        messages = data[0].chat
                     }
-                    return messages
-                }, []))
+                }
+                if(!messages){
+                    messages = {}
+                }
                 res.status(200).json(messages)
-            })
-            .catch(err => { res.status(500).json({ error: err.message }) })
-    }
+            }).catch(err => { res.status(500).json({ error: err.message }) })
+        })
+        .catch(err => { res.status(500).json({ error: err.message }) })
 })
 
-router.post('/:type', (req, res) => {
-    if (req.params.type === "whatsapp"){
-        const client = require('twilio')(account_sid, auth_token);
-        if (req.body.body && req.body.to){
+router.post('/:candidateId', async (req, res) => {
+    if (req.body.channel === "whatsapp"){
+        const client = require('twilio')(account_sid, auth_token)
+        if (req.body.text && req.body.to){
+            req.body.body = req.body.text
             req.body.from = from_number
-            client.messages
-                .create(req.body)
-                .then(message => {
-                    console.log(message)
-                    res.status(200).json(message)
-                }).catch( error => res.status(200).json(error))
+            const twilioStatus = await client.messages.create(req.body).catch(error => res.status(500).json(error))
+            console.log(twilioStatus)
+            if (twilioStatus.errorCode){
+                res.status(500).json(twilioStatus)
+            }
         } else {
             res.status(500).json({"Message": "Message should contain body and to keys"})
         }
-    } 
-    if (req.params.type === "rest"){
-        res.status(200).json(req.body)
     }
-    else {
-        res.status(500).json({"Message": "Invalid type, use whatsapp"})
-    }
+    Chat.findOneAndUpdate({ candidateId: req.params.candidateId }, { $push: { chat: req.body } }, {new: true}).exec()
+        .then(result => {
+            if (!result) {
+                const newChat = new Chat({
+                    chat: req.body,
+                    candidateId: req.params.candidateId
+                })
+                newChat.save().then(result => {
+                    res.json(result.chat[0])
+                }).catch(err => res.json(err))
+            } else {
+                res.json(result.chat[result.chat.length-1])
+            }
+        })
+        .catch(err => {res.json(err)})
 })
 
 module.exports = router
