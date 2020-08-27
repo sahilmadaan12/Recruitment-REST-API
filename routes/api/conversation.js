@@ -6,14 +6,13 @@ const from_number = process.env.from_number
 
 const Conversation = require('../../models/conversation')//the collection used by RASA Bot
 const Chat = require('../../models/chat');//the collection used by the frontend
-const chat = require('../../models/chat');
 
 router.get('/:candidateId', (req, res) => {
     Conversation.find({ "slots.candidateId": req.params.candidateId })
         .select('-__v')
         .exec()
         .then(data => {
-            var messages = data.map(conversation => conversation.events.reduce((messages, event) => {
+            let messages = data.map(conversation => conversation.events.reduce((messages, event) => {
                 if (event.event === 'user') {
                     messages.push({
                         'sender': 'user',

@@ -48,6 +48,10 @@ const candidateSchema = mongoose.Schema({
   organisation: String,
   department:String,
   experience:String,
+  uid: {
+    type: String,
+    unique: true
+  },
   response: {
     type: [responseSchema],
     required: true
