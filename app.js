@@ -21,6 +21,7 @@ app.get('/', (_req, res) => {
 app.use('/api/candidates', require('./routes/api/candidates'))
 app.use('/api/vacancies', require('./routes/api/vacancies'))
 app.use('/api/conversation', require('./routes/api/conversation'))
+app.use('/api/chats', require('./routes/api/chats'))
 app.use('/api/screening', require('./routes/api/screening'))
 
 app.listen(PORT, () => console.log(`Server Started on port ${PORT}`))

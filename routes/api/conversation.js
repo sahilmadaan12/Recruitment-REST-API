@@ -14,6 +14,13 @@ router.get('/:candidateId', (req, res) => {
         .then(data => {
             let messages = data.map(conversation => conversation.events.reduce((messages, event) => {
                 if (event.event === 'user') {
+                    if (event.text.startsWith("/")){
+                        event.text = event.text.split("/")[1]
+                        if (event.text.split("\"").length > 1){
+                            event.text = event.text.split("\"")[3]
+                        } else {
+                        }
+                    }
                     messages.push({
                         'sender': 'user',
                         'text': event.text,
@@ -69,6 +76,7 @@ router.post('/:candidateId', async (req, res) => {
             if (!result) {
                 const newChat = new Chat({
                     chat: req.body,
+                    uid: req.body.uid,
                     candidateId: req.params.candidateId
                 })
                 newChat.save().then(result => {

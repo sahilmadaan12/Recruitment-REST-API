@@ -13,6 +13,10 @@ const chatSchema = mongoose.Schema({
         ref: 'Candidate',
         required: true
     },
+    uid: {
+        type: String,
+        required: true
+    },
     chat: {
         type: [chatFormat],
         required: true

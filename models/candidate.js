@@ -48,6 +48,7 @@ const candidateSchema = mongoose.Schema({
   organisation: String,
   department:String,
   experience:String,
+  sessionid: String,
   uid: {
     type: String,
     unique: true

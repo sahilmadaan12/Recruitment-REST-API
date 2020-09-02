@@ -17,7 +17,7 @@ const vacancySchema = mongoose.Schema({
   minXp: Number,
   maxXp: Number,
   location: String,
-  jobDes: String,
+  jobDesc: String,
   screening: {
     type: [mongoose.Types.ObjectId],
     ref: 'Screening',
