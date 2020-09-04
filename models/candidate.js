@@ -31,10 +31,6 @@ const candidateSchema = mongoose.Schema({
     type: Number,
     default: () => Math.floor((Math.random() * 100) + 1)
   },
-  active: {
-    type: Boolean,
-    default: true
-  },
   notes: String,
   jobId: {
     type: [mongoose.Types.ObjectId],
@@ -49,6 +45,16 @@ const candidateSchema = mongoose.Schema({
   department:String,
   experience:String,
   sessionid: String,
+  chatType: {
+    type: String,
+    enum: ['outbound', 'inbound'],
+    default: 'inbound'
+  },
+  chatState: {
+    type: String,
+    enum: ['active', 'inactive', 'completed'],
+    default: 'active'
+  },
   uid: {
     type: String,
     unique: true
