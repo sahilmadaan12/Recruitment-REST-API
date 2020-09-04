@@ -5,7 +5,7 @@ const chatFormat = mongoose.Schema({
     text: String,
     createdAt: Number,
     updatedAt: Number
-}, {timestamps: { currentTime: () => Math.floor(Date.now() / 1000) }})
+}, {timestamps: { currentTime: () => Date.now() }})
 
 const chatSchema = mongoose.Schema({
     candidateId: {
