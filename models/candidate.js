@@ -57,7 +57,7 @@ const candidateSchema = mongoose.Schema({
   },
   uid: {
     type: String,
-    unique: true
+    default: () => Math.floor(1000000 + Math.random() * 9000000)
   },
   response: {
     type: [responseSchema],

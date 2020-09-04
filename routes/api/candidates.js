@@ -32,7 +32,7 @@ router.post('/', (req, res) => {
                 Vacancy.updateMany({ _id: { $in: applyingVacancies } }, update).exec()
                     .then(result => {
                         if (result.n === applyingVacancies.length) {
-                            req.body.uid = Math.floor(1000000 + Math.random() * 9000000)
+                            // req.body.uid = Math.floor(1000000 + Math.random() * 9000000)
                             const candidate = new Candidate(req.body)
                             candidate.save()
                                 .then(result => {res.status(201).json({createdCandidate: result})})
