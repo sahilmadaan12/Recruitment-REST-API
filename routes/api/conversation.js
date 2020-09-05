@@ -7,53 +7,79 @@ const from_number = process.env.from_number
 const Conversation = require('../../models/conversation')//the collection used by RASA Bot
 const Chat = require('../../models/chat');//the collection used by the frontend
 
-router.get('/:candidateId', (req, res) => {
-    Conversation.find({ "slots.candidateId": req.params.candidateId })
-        .select('-__v')
-        .exec()
-        .then(data => {
-            let messages = data.map(conversation => conversation.events.reduce((messages, event) => {
-                if (event.event === 'user') {
-                    if (event.text.startsWith("/")){
-                        event.text = event.text.split("/")[1]
-                        if (event.text.split("\"").length > 1){
-                            event.text = event.text.split("\"")[3]
-                        } else {
-                        }
-                    }
-                    messages.push({
-                        'sender': 'user',
-                        'text': event.text,
-                        'createdAt': event.timestamp
-                    })
-                } else if (event.event === 'bot') {
-                    messages.push({
-                        'sender': 'bot',
-                        'text': event.text,
-                        'createdAt': event.timestamp
-                    })
-                }
-                return messages
-            }, []))
-            messages = messages[0]
-            Chat.find({ "candidateId": req.params.candidateId }).exec().then(data => {
-                if (data.length > 0) {
-                    if(messages){
-                        messages = messages.concat(data[0].chat) // array of array is in case we want to expand the channels with same candidateId
-                        messages.sort((a, b) => {
-                            return a.createdAt - b.createdAt
-                        })
-                    } else {
-                        messages = data[0].chat
+async function convo(candidateId) {
+    try{
+        const conversation = await Conversation.find({ "slots.candidateId": candidateId })
+        let messages = conversation.map(conversation => conversation.events.reduce((messages, event) => {
+            if (event.event === 'user') {
+                if (event.text.startsWith("/")) {
+                    event.text = event.text.split("/")[1]
+                    if (event.text.split("\"").length > 1) {
+                        event.text = event.text.split("\"")[3]
                     }
                 }
-                if(!messages){
-                    messages = {}
-                }
-                res.status(200).json(messages)
-            }).catch(err => { res.status(500).json({ error: err.message }) })
-        })
-        .catch(err => { res.status(500).json({ error: err.message }) })
+                messages.push({
+                    'sender': 'user',
+                    'text': event.text,
+                    'createdAt': event.timestamp
+                })
+            } else if (event.event === 'bot') {
+                messages.push({
+                    'sender': 'bot',
+                    'text': event.text,
+                    'createdAt': event.timestamp
+                })
+            }
+            return messages
+        }, []))
+        messages = messages[0]
+        let chat = await Chat.find({ "candidateId": candidateId })
+        if (chat.length > 0) {
+            if (messages) {
+                messages = messages.concat(chat[0].chat) // array of array is in case we want to expand the channels with same candidateId
+                messages.sort((a, b) => {
+                    return a.createdAt - b.createdAt
+                })
+            } else {
+                messages = chat[0].chat
+            }
+        }
+        if (!messages) {
+            messages = {}
+        }
+        return messages
+    } catch(error){
+        throw new Error(error)
+    }
+}
+
+router.get('/:candidateId', async (req, res) => {
+    let response = {}
+    try{
+        response = await convo(req.params.candidateId)
+    } catch(error){
+        console.log(error)
+        res.status(500).json({"msg": "Server Error"})
+    }
+    if (req.query.size) {
+        let decay = 1000
+        while (response.length <= req.query.size || response.length === undefined) {
+            if(decay>1500){
+                break
+            }
+            try {
+                await new Promise(r => setTimeout(r, decay));
+                decay+=25
+                response = await convo(req.params.candidateId)
+            } catch (error) {
+                console.log(error)
+                res.status(500).json({ "msg": "Server Error" })
+            }
+        }
+        res.status(200).json(response)
+    } else {
+        res.status(200).json(response)
+    }
 })
 
 router.post('/:candidateId', async (req, res) => {
