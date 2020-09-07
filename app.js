@@ -11,8 +11,8 @@ const DB = process.env.DB
 
 mongoose.connect(DB, { useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true, useFindAndModify: false })
     .catch(error => console.log(error))
-
 app.use(cors())
+app.use('/uploads', express.static('uploads'))
 app.use(express.json())
 app.get('/', (_req, res) => {
     res.send("Api at <br><br> /api/candidates <br> /api/vacancies <br> /api/conversation")
