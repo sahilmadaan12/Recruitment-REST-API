@@ -64,7 +64,7 @@ router.get('/:candidateId', async (req, res) => {
     if (req.query.size) {
         let decay = 1000
         while (response.length <= req.query.size || response.length === undefined) {
-            if(decay>1500){
+            if(decay>2000){
                 break
             }
             try {
@@ -83,36 +83,46 @@ router.get('/:candidateId', async (req, res) => {
 })
 
 router.post('/:candidateId', async (req, res) => {
-    if (req.body.channel === "whatsapp"){
+    let success = true
+    if (req.body.channel === "whatsapp" || req.body.channel === "sms") {
         const client = require('twilio')(account_sid, auth_token)
-        if (req.body.text && req.body.to){
+        if (req.body.text && req.body.to) {
             req.body.body = req.body.text
-            req.body.from = from_number
-            const twilioStatus = await client.messages.create(req.body).catch(error => res.status(500).json(error))
-            console.log(twilioStatus)
-            if (twilioStatus.errorCode){
-                res.status(500).json(twilioStatus)
+            if (req.body.channel === "whatsapp") {
+                req.body.from = "whatsapp:" + from_number
+            } else {
+                req.body.from = from_number
+            }
+            try {
+                twilioStatus = await client.messages.create(req.body)
+            } catch (error) {
+                success = false
+                console.error(error)
             }
         } else {
-            res.status(500).json({"Message": "Message should contain body and to keys"})
+            res.status(500).json({ "Message": "Message should contain body and to keys" })
         }
     }
-    Chat.findOneAndUpdate({ candidateId: req.params.candidateId }, { $push: { chat: req.body } }, {new: true}).exec()
-        .then(result => {
-            if (!result) {
-                const newChat = new Chat({
-                    chat: req.body,
-                    uid: req.body.uid,
-                    candidateId: req.params.candidateId
-                })
-                newChat.save().then(result => {
-                    res.json(result.chat[0])
-                }).catch(err => res.json(err))
-            } else {
-                res.json(result.chat[result.chat.length-1])
-            }
-        })
-        .catch(err => {res.json(err)})
+    if (!success) {
+        res.status(500).json({"Message": "Twilio error"})
+    } else {
+        Chat.findOneAndUpdate({ candidateId: req.params.candidateId }, { $push: { chat: req.body } }, { new: true }).exec()
+            .then(result => {
+                if (!result) {
+                    const newChat = new Chat({
+                        chat: req.body,
+                        uid: req.body.uid,
+                        candidateId: req.params.candidateId
+                    })
+                    newChat.save().then(result => {
+                        res.json(result.chat[0])
+                    }).catch(err => res.json(err))
+                } else {
+                    res.json(result.chat[result.chat.length - 1])
+                }
+            })
+            .catch(err => { res.json(err) })
+    }
 })
 
 module.exports = router
