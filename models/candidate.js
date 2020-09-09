@@ -23,9 +23,7 @@ const candidateSchema = mongoose.Schema({
   currentPosition: String,
   currentCompany: String,
   currentLocation: String,
-  cvLink: {
-    type: String
-  },
+  resume: String,
   avatar: String, //Profile Image or DP: Provide a link to pic
   score: {
     type: Number,
