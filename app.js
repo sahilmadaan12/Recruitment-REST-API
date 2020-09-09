@@ -7,7 +7,7 @@ const app = express()
 require('dotenv').config()
 
 const PORT = process.env.PORT || 3000
-const DB = process.env.DB
+const DB = "mongodb+srv://sahilmadaan12:T6MYNng9@cluster0.5rchi.gcp.mongodb.net/restapi_test?retryWrites=true&w=majority"
 
 mongoose.connect(DB, { useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true, useFindAndModify: false })
     .catch(error => console.log(error))
